@@ -1,0 +1,132 @@
+name: Clari
+id: clari
+description: 收入预测和管道健康度分析平台，基于 CRM 数据 + 销售活动预测成交概率和营收
+
+auth:
+  required: true
+  method: api_key
+  env_vars:
+    - CLARI_API_KEY
+  how_to_get: |
+    1. 购买 Clari 企业版（需联系销售）
+    2. 登录后访问 Settings > API Access
+    3. 点击 "Generate API Key"
+    4. 复制 API key
+    5. 请求头：X-Api-Key: {API_KEY}
+  pricing: |
+    - 需联系销售，价格不公开
+    - 估计 $60-100/用户/月起
+    - 按席位 + CRM 同步数据量计费
+
+endpoints:
+  get_forecast:
+    method: GET
+    path: /api/v4/forecasts
+    description: 获取团队收入预测（按季度/月）
+    params:
+      period: "预测周期（如 2024-Q1）"
+      team_id: "团队 ID（可选）"
+    returns: "预测数据（提交额、最佳情况、最差情况、达成概率）"
+
+  get_pipeline_health:
+    method: GET
+    path: /api/v4/pipeline/health
+    description: 获取管道健康度评分
+    params:
+      period: "时间周期"
+    returns: "健康度指标（覆盖率、推进速度、滞留商机数、流失率）"
+
+  list_opportunities:
+    method: GET
+    path: /api/v4/opportunities
+    description: 获取商机列表（从 CRM 同步）
+    params:
+      stage: "阶段（如 Discovery, Proposal）"
+      owner_id: "负责人 ID"
+      close_date_start: "预计成交日期范围起始"
+      close_date_end: "预计成交日期范围结束"
+    returns: "商机列表（金额、阶段、成交概率、风险因素）"
+
+  get_opportunity_insights:
+    method: GET
+    path: /api/v4/opportunities/{id}/insights
+    description: 获取单个商机的 AI 洞察
+    params:
+      id: "商机 ID"
+    returns: "洞察（成交风险、下一步建议、活动缺失警告）"
+
+  get_deal_score:
+    method: GET
+    path: /api/v4/opportunities/{id}/score
+    description: 获取商机健康评分（AI 预测成交概率）
+    params:
+      id: "商机 ID"
+    returns: "评分（0-100）+ 影响因素（活动频率、联系人覆盖、周期）"
+
+  get_activity_timeline:
+    method: GET
+    path: /api/v4/opportunities/{id}/timeline
+    description: 获取商机活动时间线（邮件、通话、会议）
+    params:
+      id: "商机 ID"
+    returns: "活动列表（类型、时间、参与人、摘要）"
+
+  get_rep_performance:
+    method: GET
+    path: /api/v4/reps/{id}/metrics
+    description: 获取销售代表绩效指标
+    params:
+      id: "销售代表 ID"
+      period: "统计周期（如 2024-Q1）"
+    returns: "绩效数据（完成率、新增管道、赢率、平均周期）"
+
+data_schema:
+  forecast:
+    period: "string - 周期（如 2024-Q1）"
+    teamId: "string"
+    metrics:
+      committed: "integer - 提交额（销售承诺完成）"
+      bestCase: "integer - 最佳情况"
+      pipeline: "integer - 管道总额"
+      closed: "integer - 已成交"
+      attainment: "float - 目标达成率（0-1）"
+
+  opportunity:
+    id: "string - CRM 商机 ID"
+    name: "string"
+    amount: "integer - 金额"
+    stage: "string - 当前阶段"
+    closeDate: "string - 预计成交日期"
+    probability: "integer - 成交概率（%）"
+    riskFactors:
+      - type: "stalled | no_activity | missing_contacts"
+        description: "string - 风险描述"
+        severity: "high | medium | low"
+
+  deal_score:
+    opportunityId: "string"
+    score: "integer - 健康评分（0-100）"
+    factors:
+      - name: "activity_level | contact_coverage | deal_velocity"
+        impact: "positive | negative"
+        weight: "float - 权重"
+
+  pipeline_health:
+    period: "string"
+    coverage: "float - 管道覆盖率（管道金额 / 目标）"
+    velocity: "integer - 平均成交周期（天）"
+    stalledDeals: "integer - 滞留商机数（>30天无活动）"
+    churnRate: "float - 流失率"
+
+rate_limits:
+  default: "30 requests/分钟"
+  daily_quota: "5000 requests/天"
+  note: "大量历史数据查询需申请提升限额"
+
+docs_url: https://docs.clari.com/
+notes: |
+  - 主要用于销售管理层和 RevOps
+  - 自动从 Salesforce/HubSpot 同步商机数据
+  - AI 预测基于历史赢率、活动模式、周期长度
+  - 提供商机风险预警（如长期无活动、缺少关键联系人）
+  - 常见场景：季度收入预测、管道审查会议、商机优先级排序

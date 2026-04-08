@@ -1,0 +1,109 @@
+name: ZoomInfo
+id: zoominfo
+description: 企业级 B2B 数据平台（1.4亿专业人士，1400万公司），提供联系人数据、意图数据、技术栈情报
+
+auth:
+  required: true
+  method: jwt_token
+  env_vars:
+    - ZOOMINFO_USERNAME
+    - ZOOMINFO_PASSWORD
+    - ZOOMINFO_API_KEY  # 企业版需要
+  how_to_get: |
+    1. 联系 ZoomInfo 销售购买企业版（无免费套餐）
+    2. 获取账号后登录 https://app.zoominfo.com
+    3. 访问 Settings > API Management > Create API Key
+    4. 先用用户名密码获取 JWT token，再用 token 调用 API
+  pricing: |
+    - Professional: ~$15k/年起（需联系销售）
+    - Advanced: $30k+/年（包含意图数据）
+    - Elite: $50k+/年（全功能 + Chorus 对话智能）
+    注：按席位和查询配额计费，价格不公开
+
+endpoints:
+  authenticate:
+    method: POST
+    path: /authenticate
+    description: 获取 JWT token（有效期 60 分钟）
+    params:
+      username: "用户名"
+      password: "密码"
+    returns: "JWT token"
+
+  search_contacts:
+    method: POST
+    path: /search/contact
+    description: 搜索联系人（支持职位、部门、公司等过滤）
+    params:
+      companyName: "公司名称"
+      jobTitle: "职位关键词"
+      managementLevel: "Executive | Manager | Individual Contributor"
+      page: "页码（从1开始）"
+      rpp: "每页数量（最大100）"
+    returns: "联系人列表（直拨电话、工作邮箱、手机号）"
+
+  search_companies:
+    method: POST
+    path: /search/company
+    description: 搜索公司（支持行业、营收、员工数等过滤）
+    params:
+      companyName: "公司名称"
+      revenueRange: "营收范围（如 10M-50M）"
+      employeeRange: "员工规模范围"
+      industryCodes: "行业代码列表"
+    returns: "公司列表（总部地址、营收、技术栈、新闻）"
+
+  enrich_contact:
+    method: POST
+    path: /enrich/contact
+    description: 根据邮箱或 LinkedIn 富化联系人
+    params:
+      email: "邮箱"
+      linkedInUrl: "LinkedIn URL"
+    returns: "联系人完整信息（直拨电话、手机、工作履历）"
+
+  get_intent_data:
+    method: POST
+    path: /search/intent
+    description: 获取公司购买意图信号（需 Advanced 套餐）
+    params:
+      companyIds: "ZoomInfo 公司 ID 列表"
+      topicIds: "意图主题 ID（如 Cloud Migration）"
+    returns: "意图数据（搜索关键词、访问页面、意图强度分数）"
+
+data_schema:
+  contact:
+    id: "string - ZoomInfo contact ID"
+    firstName: "string"
+    lastName: "string"
+    email: "string - 工作邮箱"
+    directPhone: "string - 直拨电话"
+    mobilePhone: "string - 手机号"
+    title: "string"
+    managementLevel: "string"
+    department: "string"
+    company:
+      id: "string"
+      name: "string"
+      revenue: "integer"
+
+  company:
+    id: "string - ZoomInfo company ID"
+    name: "string"
+    website: "string"
+    revenue: "integer - 年营收（美元）"
+    employees: "integer"
+    technologies: "array - 使用的技术"
+    intentTopics: "array - 购买意图主题（需 Advanced）"
+
+  intent_signal:
+    companyId: "string"
+    topic: "string - 意图主题（如 Marketing Automation）"
+    score: "integer - 意图强度（0-100）"
+    sources: "array - 信号来源（网页访问、搜索、内容下载）"
+
+rate_limits:
+  default: "60 requests/分钟（企业版可提升到 600/分钟）"
+  note: "超出限额后返回 429 错误，建议加指数退避重试"
+
+docs_url: https://api-docs.zoominfo.com/

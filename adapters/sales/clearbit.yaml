@@ -1,0 +1,112 @@
+name: Clearbit
+id: clearbit
+description: 公司和联系人信息富化 API（被 HubSpot 收购），专注根据邮箱/域名补全公司/人员画像
+
+auth:
+  required: true
+  method: api_key_basic_auth
+  env_vars:
+    - CLEARBIT_API_KEY
+  how_to_get: |
+    1. 注册 Clearbit 账号 (https://clearbit.com)
+    2. 登录后访问 Dashboard > API Keys
+    3. 复制 Secret API Key
+    4. 使用 Basic Auth：curl -u {API_KEY}: https://...
+    注：2023年被 HubSpot 收购，新客户需联系销售
+  pricing: |
+    - Free: 已停止提供
+    - Risk: $99/月（1000 次富化）
+    - Growth: $249/月（2500 次富化）
+    - Business: $999/月（10000 次富化）
+    注：现在主要面向 HubSpot 客户
+
+endpoints:
+  enrich_person:
+    method: GET
+    path: /v2/people/find
+    description: 根据邮箱富化联系人信息
+    params:
+      email: "邮箱地址（必填）"
+      webhook_url: "异步回调 URL（可选）"
+      subscribe: "true/false（是否订阅该联系人的数据更新）"
+    returns: "联系人信息（姓名、职位、社交主页、头像、简介）"
+
+  enrich_company:
+    method: GET
+    path: /v2/companies/find
+    description: 根据域名富化公司信息
+    params:
+      domain: "公司域名（如 stripe.com）"
+      webhook_url: "异步回调 URL"
+    returns: "公司信息（行业、规模、融资、技术栈、社交账号）"
+
+  combined_enrichment:
+    method: GET
+    path: /v2/combined/find
+    description: 同时富化联系人和公司（1 次调用）
+    params:
+      email: "邮箱地址"
+    returns: "联系人 + 公司完整信息"
+
+  reveal_company_from_ip:
+    method: GET
+    path: /v2/companies/find
+    description: 根据访客 IP 地址识别公司（用于网站访客分析）
+    params:
+      ip: "访客 IP 地址"
+    returns: "公司信息（若 IP 属于企业网络）"
+
+  autocomplete_company:
+    method: GET
+    path: /v1/companies/suggest
+    description: 公司名称自动补全
+    params:
+      query: "公司名称前缀（如 'Str'）"
+    returns: "公司名称候选列表（带 logo 和域名）"
+
+data_schema:
+  person:
+    id: "string - Clearbit person ID"
+    name:
+      fullName: "string"
+      givenName: "string"
+      familyName: "string"
+    email: "string"
+    avatar: "string - 头像 URL"
+    employment:
+      domain: "string"
+      name: "string - 公司名"
+      title: "string - 职位"
+      role: "string - 职能（如 engineering）"
+      seniority: "executive | director | manager | individual"
+    linkedin:
+      handle: "string - LinkedIn username"
+    twitter:
+      handle: "string"
+
+  company:
+    id: "string - Clearbit company ID"
+    name: "string"
+    domain: "string"
+    logo: "string - logo URL"
+    description: "string"
+    category:
+      sector: "string"
+      industry: "string"
+    metrics:
+      employees: "integer"
+      employeesRange: "string (如 1-10, 11-50)"
+      estimatedAnnualRevenue: "string"
+      raised: "integer - 融资总额"
+    tech: "array - 技术栈（如 ['Google Analytics', 'AWS']）"
+
+rate_limits:
+  default: "600 requests/分钟"
+  enrichment_quota: "按套餐计费，超出后额外收费 $0.20-0.30/次"
+  streaming: "实时富化无速率限制，但计入配额"
+
+docs_url: https://dashboard.clearbit.com/docs
+notes: |
+  - 2023年被 HubSpot 收购后，新客户需联系销售
+  - 旧客户可继续使用 API
+  - HubSpot 客户可在 HubSpot 内直接使用 Clearbit 富化

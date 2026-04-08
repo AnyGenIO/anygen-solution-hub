@@ -1,0 +1,132 @@
+name: Chorus.ai
+id: chorus
+description: 对话智能平台（ZoomInfo 旗下），录制销售通话并提取关键洞察，与 ZoomInfo CRM 数据深度集成
+
+auth:
+  required: true
+  method: api_key
+  env_vars:
+    - CHORUS_API_KEY
+  how_to_get: |
+    1. 购买 ZoomInfo + Chorus 套餐（需联系销售）
+    2. 登录 Chorus 后访问 Settings > Integrations > API
+    3. 点击 "Generate API Key"
+    4. 复制 API key
+    5. 请求头：Authorization: Bearer {API_KEY}
+  pricing: |
+    - 包含在 ZoomInfo Elite 套餐中（$50k+/年起）
+    - 或单独购买 Chorus：~$1800/用户/年起
+    - 按席位 + 通话录制时长计费
+
+endpoints:
+  list_conversations:
+    method: GET
+    path: /api/conversations
+    description: 获取对话列表（通话、会议）
+    params:
+      start_date: "起始日期（YYYY-MM-DD）"
+      end_date: "结束日期"
+      user_id: "用户 ID（可选）"
+      page: "页码"
+      per_page: "每页数量（最大 100）"
+    returns: "对话列表（ID、标题、时长、参与人、录制状态）"
+
+  get_conversation:
+    method: GET
+    path: /api/conversations/{id}
+    description: 获取单个对话详情
+    params:
+      id: "对话 ID"
+    returns: "对话详情（逐字稿、话题、关键时刻、下一步行动）"
+
+  get_transcript:
+    method: GET
+    path: /api/conversations/{id}/transcript
+    description: 获取对话逐字稿
+    params:
+      id: "对话 ID"
+    returns: "逐字稿（分句、说话人、时间戳、情绪）"
+
+  get_highlights:
+    method: GET
+    path: /api/conversations/{id}/highlights
+    description: 获取对话高光时刻（AI 提取的关键片段）
+    params:
+      id: "对话 ID"
+    returns: "高光时刻列表（时间戳、内容、类型：竞品/定价/异议）"
+
+  get_trackers:
+    method: GET
+    path: /api/trackers
+    description: 获取关键词追踪器（如竞品名、痛点词）
+    returns: "追踪器列表（名称、关键词、触发次数）"
+
+  get_talk_time_ratio:
+    method: GET
+    path: /api/conversations/{id}/metrics
+    description: 获取对话指标（谈话比例、提问次数、停顿时长）
+    params:
+      id: "对话 ID"
+    returns: "指标数据（客户谈话占比、销售提问数、沉默时长）"
+
+  search_calls:
+    method: POST
+    path: /api/search
+    description: 根据关键词搜索对话
+    params:
+      query: "搜索关键词（如 'pricing objection'）"
+      filters:
+        date_range: "时间范围"
+        participants: "参与人邮箱列表"
+    returns: "匹配的对话列表（带匹配片段）"
+
+data_schema:
+  conversation:
+    id: "string - Chorus conversation ID"
+    title: "string"
+    duration: "integer - 时长（秒）"
+    recordingDate: "string - 录制时间（ISO 8601）"
+    participants:
+      - email: "string"
+        name: "string"
+        role: "Host | Attendee"
+    opportunity:
+      id: "string - 关联 CRM 机会 ID"
+      name: "string"
+      stage: "string"
+
+  transcript:
+    conversationId: "string"
+    segments:
+      - speaker: "string - 说话人名称"
+        text: "string"
+        startTime: "integer - 开始时间（秒）"
+        sentiment: "positive | neutral | negative"
+
+  highlight:
+    conversationId: "string"
+    type: "competitor_mention | pricing_discussion | objection | next_step"
+    text: "string - 高光片段内容"
+    timestamp: "integer - 出现时间（秒）"
+    confidence: "float - AI 置信度（0-1）"
+
+  metrics:
+    talkRatio:
+      customer: "float - 客户谈话占比（0-1）"
+      sales: "float - 销售谈话占比"
+    questionCount: "integer - 销售提问次数"
+    longestMonologue: "integer - 最长独白时长（秒）"
+    interactivity: "float - 互动性分数（0-100）"
+
+rate_limits:
+  default: "10 requests/秒"
+  daily_quota: "5000 requests/天（可联系支持提升）"
+  note: "下载录音文件有单独限额"
+
+docs_url: https://docs.chorus.ai/
+notes: |
+  - 2021 年被 ZoomInfo 收购
+  - 与 ZoomInfo 联系人数据深度集成
+  - 支持自动同步对话到 Salesforce/HubSpot
+  - 与 Gong 功能类似，选择其一即可
+  - 优势：与 ZoomInfo 数据联动（看到联系人时自动关联通话）

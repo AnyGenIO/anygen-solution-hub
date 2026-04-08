@@ -1,0 +1,114 @@
+name: Gong
+id: gong
+description: 销售对话智能平台，录制并分析销售通话/会议，提供 AI 洞察（关键话题、客户情绪、成交信号）
+
+auth:
+  required: true
+  method: oauth2
+  env_vars:
+    - GONG_ACCESS_KEY
+    - GONG_ACCESS_KEY_SECRET
+  how_to_get: |
+    1. 购买 Gong 企业版（需联系销售，无自助注册）
+    2. 登录后访问 Company Settings > API > Create API Key
+    3. 选择权限范围（读取通话、用户、CRM 数据等）
+    4. 保存 Access Key 和 Secret
+    5. 使用 Basic Auth：Base64(access_key:secret)
+  pricing: |
+    - 需联系销售，价格不公开
+    - 一般 $1200-1500/用户/年起
+    - 按席位 + 通话录制分钟数计费
+    - 企业版包含 API 访问
+
+endpoints:
+  list_calls:
+    method: GET
+    path: /v2/calls
+    description: 获取通话列表（支持时间、参与人、CRM 机会筛选）
+    params:
+      fromDateTime: "起始时间（ISO 8601）"
+      toDateTime: "结束时间"
+      workspaceId: "workspace ID"
+      cursor: "分页游标"
+    returns: "通话列表（ID、时长、参与人、关联 CRM 机会）"
+
+  get_call_transcript:
+    method: GET
+    path: /v2/calls/{callId}/transcript
+    description: 获取通话逐字稿（包含说话人和时间戳）
+    params:
+      callId: "通话 ID"
+    returns: "逐字稿（分句、说话人标注、情绪标签）"
+
+  get_call_topics:
+    method: POST
+    path: /v2/calls/topics
+    description: 获取通话中讨论的话题（AI 提取的关键主题）
+    params:
+      callIds: "通话 ID 列表"
+    returns: "话题列表（定价讨论、竞品提及、异议、下一步）"
+
+  get_call_stats:
+    method: POST
+    path: /v2/stats/activity/aggregate
+    description: 获取团队通话统计（通话数、时长、参与度）
+    params:
+      fromDate: "起始日期"
+      toDate: "结束日期"
+      userIds: "用户 ID 列表（可选）"
+    returns: "统计数据（总通话数、平均时长、谈话比例）"
+
+  get_trackers:
+    method: GET
+    path: /v2/settings/trackers
+    description: 获取关键词追踪器（如竞品名、痛点、成交信号）
+    returns: "追踪器列表（名称、关键词、出现次数）"
+
+  get_scorecard:
+    method: GET
+    path: /v2/calls/{callId}/scorecards
+    description: 获取通话评分卡（销售技巧评分）
+    params:
+      callId: "通话 ID"
+    returns: "评分卡（需求发现、异议处理、结束技巧得分）"
+
+data_schema:
+  call:
+    id: "string - Gong call ID"
+    title: "string"
+    duration: "integer - 时长（秒）"
+    startedAt: "string - 开始时间（ISO 8601）"
+    parties:
+      - name: "string - 参与人姓名"
+        emailAddress: "string"
+        speakerId: "string"
+        role: "Host | Guest | Participant"
+    crmOpportunity:
+      id: "string - 关联的 CRM 机会 ID"
+      name: "string"
+
+  transcript:
+    callId: "string"
+    sentences:
+      - speakerId: "string"
+        text: "string - 说话内容"
+        startTime: "integer - 开始时间（秒）"
+        sentiment: "positive | neutral | negative"
+
+  topic:
+    name: "string - 话题名称（如 Pricing, Competitor, Next Steps）"
+    count: "integer - 提及次数"
+    duration: "integer - 讨论时长（秒）"
+    sentiment: "string"
+
+rate_limits:
+  default: "3 requests/秒"
+  daily_quota: "10000 requests/天（企业版可调整）"
+  note: "大量通话下载需申请提升限额"
+
+docs_url: https://us-api.gong.io/docs/
+notes: |
+  - 主要用于销售团队复盘和培训
+  - 自动识别成交信号、客户异议、下一步行动
+  - 集成 Salesforce/HubSpot，自动同步通话到 CRM
+  - 支持 Zoom/Teams/Google Meet 自动录制

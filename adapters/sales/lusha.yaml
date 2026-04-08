@@ -1,0 +1,108 @@
+name: Lusha
+id: lusha
+description: B2B 联系人查找工具，专注邮箱和电话号码挖掘（Chrome 插件 + API）
+
+auth:
+  required: true
+  method: api_key
+  env_vars:
+    - LUSHA_API_KEY
+  how_to_get: |
+    1. 注册 Lusha 账号 (https://www.lusha.com)
+    2. 登录后访问 Settings > API
+    3. 点击 "Generate API Key"
+    4. 复制 API key
+  pricing: |
+    - Free: 5 credits/月（仅 Chrome 插件）
+    - Pro: $29/月/用户（480 credits）
+    - Premium: $51/月/用户（960 credits）
+    - Scale: $79/月/用户（2400 credits + API 访问）
+
+endpoints:
+  enrich_person:
+    method: POST
+    path: /person
+    description: 根据姓名和公司查找联系人邮箱和电话
+    params:
+      firstName: "名"
+      lastName: "姓"
+      company: "公司名称或域名"
+      property:  # 可选字段，指定返回哪些数据
+        - emailAddress
+        - phoneNumber
+        - linkedinUrl
+    returns: "联系人信息（邮箱、电话、LinkedIn）"
+
+  enrich_company:
+    method: POST
+    path: /company
+    description: 根据域名查找公司信息
+    params:
+      domain: "公司域名（如 stripe.com）"
+      property:
+        - name
+        - industry
+        - companySize
+        - location
+    returns: "公司信息（行业、规模、总部地址）"
+
+  bulk_enrich:
+    method: POST
+    path: /bulkEnrichment
+    description: 批量富化联系人（最多 25 个/次）
+    params:
+      data: "array - 联系人列表（firstName, lastName, company）"
+    returns: "批量富化结果（成功/失败状态）"
+
+  search_contacts:
+    method: POST
+    path: /search
+    description: 搜索联系人（需 Scale 套餐）
+    params:
+      jobTitle: "职位关键词"
+      companyDomain: "公司域名"
+      location: "地理位置"
+      seniority: "Senior | Manager | Director | VP | C-Level"
+    returns: "匹配联系人列表"
+
+data_schema:
+  person:
+    firstName: "string"
+    lastName: "string"
+    emailAddress: "string - 工作邮箱"
+    phoneNumber: "string - 电话号码（带国家代码）"
+    position: "string - 职位"
+    linkedinUrl: "string"
+    company:
+      name: "string"
+      domain: "string"
+
+  company:
+    name: "string"
+    domain: "string"
+    industry: "string"
+    companySize: "string - 员工规模范围"
+    location:
+      country: "string"
+      city: "string"
+      address: "string"
+    phoneNumbers: "array - 公司电话列表"
+
+  enrichment_result:
+    success: "boolean"
+    credits_used: "integer - 消耗的 credits"
+    data: "object - 富化结果（若 success=true）"
+    error: "string - 错误信息（若 success=false）"
+
+rate_limits:
+  default: "20 requests/秒"
+  bulk_limit: "最多 25 个联系人/次"
+  monthly_quota: "按套餐计费（Pro: 480, Premium: 960, Scale: 2400）"
+  note: "每次富化成功消耗 1 credit，失败不消耗"
+
+docs_url: https://www.lusha.com/docs/
+notes: |
+  - 主要通过 Chrome 插件使用（在 LinkedIn/Sales Navigator 上直接查找）
+  - API 仅 Scale 套餐可用
+  - 电话号码准确率较高（尤其美国市场）
+  - 邮箱格式遵循公司规则推测（如 first.last@company.com）

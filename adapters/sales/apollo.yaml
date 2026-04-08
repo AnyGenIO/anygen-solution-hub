@@ -1,0 +1,94 @@
+name: Apollo.io
+id: apollo
+description: B2B 联系人和公司数据库（2.75亿联系人，6000万公司），支持联系人搜索、邮箱查找、公司信息富化
+
+auth:
+  required: true
+  method: api_key
+  env_vars:
+    - APOLLO_API_KEY
+  how_to_get: |
+    1. 注册 Apollo.io 账号 (https://apollo.io)
+    2. 登录后访问 Settings > Integrations > API
+    3. 点击 "Create API Key"
+    4. 复制生成的 API key
+  pricing: |
+    - Free: 60 credits/月（查询联系人）
+    - Basic: $49/月（10,000 credits）
+    - Professional: $99/月（50,000 credits）
+    - Organization: $149/月（100,000+ credits）
+
+endpoints:
+  search_people:
+    method: POST
+    path: /v1/mixed_people/search
+    description: 搜索联系人（支持职位、公司、行业、地理等过滤）
+    params:
+      q_organization_domains: "公司域名"
+      person_titles: "职位关键词（如 CTO, VP Engineering）"
+      contact_email_status: "[any, verified, guessed, unavailable]"
+      page: "页码（从1开始）"
+      per_page: "每页数量（最大100）"
+    returns: "联系人列表（姓名、职位、邮箱、LinkedIn、电话）"
+
+  search_organizations:
+    method: POST
+    path: /v1/mixed_companies/search
+    description: 搜索公司（支持行业、规模、融资阶段等过滤）
+    params:
+      organization_ids: "公司 ID 列表"
+      q_organization_keyword_tags: "行业标签（如 SaaS, AI）"
+      organization_num_employees_ranges: "员工规模范围"
+      revenue_range: "营收范围"
+    returns: "公司列表（名称、域名、员工数、行业、融资信息）"
+
+  enrich_person:
+    method: GET
+    path: /v1/people/match
+    description: 根据邮箱或 LinkedIn URL 富化联系人信息
+    params:
+      email: "邮箱地址"
+      linkedin_url: "LinkedIn 个人主页 URL"
+    returns: "联系人详细信息（当前/历史职位、教育、技能）"
+
+  enrich_company:
+    method: GET
+    path: /v1/organizations/enrich
+    description: 根据域名富化公司信息
+    params:
+      domain: "公司域名（如 stripe.com）"
+    returns: "公司详细信息（技术栈、员工分布、融资历史）"
+
+data_schema:
+  person:
+    id: "string - Apollo person ID"
+    first_name: "string"
+    last_name: "string"
+    email: "string - 邮箱（可能是验证过的或推测的）"
+    email_status: "verified | guessed | unavailable"
+    title: "string - 职位"
+    linkedin_url: "string"
+    organization:
+      name: "string"
+      domain: "string"
+      industry: "string"
+      num_employees: "integer"
+
+  organization:
+    id: "string - Apollo org ID"
+    name: "string"
+    domain: "string"
+    website: "string"
+    industry: "string"
+    num_employees: "integer"
+    revenue: "integer - 年营收（美元）"
+    founded_year: "integer"
+    technologies: "array - 使用的技术栈"
+    funding_stage: "Seed | Series A | Series B | Series C+"
+
+rate_limits:
+  free_tier: "60 credits/月，1 次请求消耗 1 credit"
+  paid_tier: "按套餐计费，导出联系人消耗更多 credits"
+  rate: "10 requests/秒"
+
+docs_url: https://apolloio.github.io/apollo-api-docs/

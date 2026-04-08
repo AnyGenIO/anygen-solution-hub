@@ -1,0 +1,143 @@
+name: Bright Data
+id: bright-data
+description: 竞品广告素材和价格爬取服务，通过代理网络采集电商/广告数据（前身 Luminati）
+
+auth:
+  required: true
+  method: proxy_auth
+  env_vars:
+    - BRIGHT_DATA_USERNAME
+    - BRIGHT_DATA_PASSWORD
+    - BRIGHT_DATA_ZONE  # 代理区域
+  how_to_get: |
+    1. 注册 Bright Data 账号 (https://brightdata.com)
+    2. 选择产品：Web Scraper API 或 Proxy Network
+    3. 创建 Zone（代理区域，如 residential/datacenter）
+    4. 获取 Zone 用户名和密码
+    5. 使用代理：curl -x http://user:pass@proxy.brightdata.com:port
+  pricing: |
+    - Proxy Network（按流量计费）:
+      - Residential: $8.40/GB 起
+      - Mobile: $11.20/GB 起
+      - Datacenter: $0.35/GB 起
+    - Web Scraper API（按请求计费）:
+      - $500/月起（10k 请求）
+    - 最低充值 $500
+
+endpoints:
+  scrape_url:
+    method: POST
+    path: https://api.brightdata.com/datasets/v3/trigger
+    description: 通过 Web Scraper API 采集网页（无需自己管理代理）
+    params:
+      url: "目标 URL"
+      dataset_id: "数据集 ID（如 gd_l7q7dkf244hwjntr0）"
+      country: "代理国家（如 US）"
+      format: "json | csv | html"
+    returns: "snapshot_id（用于轮询结果）"
+
+  get_snapshot:
+    method: GET
+    path: https://api.brightdata.com/datasets/v3/snapshot/{snapshot_id}
+    description: 获取采集结果
+    params:
+      snapshot_id: "快照 ID（从 scrape_url 返回）"
+    returns: "采集数据（JSON/CSV）"
+
+  # 使用代理直接请求（适用于自定义爬虫）
+  proxy_request:
+    method: ANY
+    description: 通过 Bright Data 代理发送任意 HTTP 请求
+    proxy_config:
+      host: "brd.superproxy.io"
+      port: 22225  # residential proxy
+      username: "brd-customer-{zone_id}-{session_params}"
+      password: "zone密码"
+    example: |
+      curl -x http://user:pass@brd.superproxy.io:22225 \
+        "https://www.amazon.com/dp/B08N5WRWNW"
+    returns: "目标网站响应（HTML/JSON）"
+
+  # 预构建的数据集（如 Amazon/Google Ads）
+  get_amazon_products:
+    method: POST
+    path: https://api.brightdata.com/datasets/v3/trigger
+    dataset_id: gd_l7q7dkf244hwjntr0
+    description: 采集 Amazon 商品数据（价格、评分、库存）
+    params:
+      url: "Amazon 商品页 URL"
+      country: "Amazon 站点国家"
+    returns: "商品数据（标题、价格、评分、Reviews、BSR）"
+
+  get_google_ads:
+    method: POST
+    path: https://api.brightdata.com/datasets/v3/trigger
+    dataset_id: gd_lwu5ah32u77upen10
+    description: 采集 Google Ads 关键词广告（竞品投放监控）
+    params:
+      keyword: "搜索关键词"
+      country: "国家"
+    returns: "广告列表（广告文案、落地页 URL、排名）"
+
+  get_facebook_ads:
+    method: POST
+    path: https://api.brightdata.com/datasets/v3/trigger
+    dataset_id: gd_l1viivp8fu7dketin
+    description: 采集 Facebook Ads Library 广告素材（竞品监控）
+    params:
+      advertiser: "广告主名称"
+      country: "国家"
+    returns: "广告素材（图片/视频 URL、文案、投放时间）"
+
+data_schema:
+  amazon_product:
+    url: "string - 商品 URL"
+    title: "string"
+    price: "float - 当前价格"
+    original_price: "float - 原价"
+    rating: "float - 评分（1-5）"
+    reviews_count: "integer"
+    availability: "In Stock | Out of Stock"
+    seller: "string - 卖家名称"
+    bsr: "integer - Best Seller Rank"
+
+  google_ad:
+    keyword: "string - 搜索关键词"
+    position: "integer - 广告排名"
+    title: "string - 广告标题"
+    description: "string - 广告描述"
+    display_url: "string - 展示 URL"
+    landing_url: "string - 落地页 URL"
+    advertiser: "string - 广告主"
+
+  facebook_ad:
+    id: "string - 广告 ID"
+    advertiser: "string - 广告主名称"
+    text: "string - 广告文案"
+    images: "array - 图片 URL 列表"
+    videos: "array - 视频 URL 列表"
+    cta: "string - 行动号召（Learn More/Shop Now）"
+    started_running: "string - 开始投放日期"
+    platforms: "array - 投放平台（Facebook/Instagram）"
+
+  scraper_snapshot:
+    snapshot_id: "string"
+    status: "ready | running | failed"
+    num_results: "integer"
+    download_url: "string - 结果下载 URL（JSON/CSV）"
+
+rate_limits:
+  web_scraper_api: "取决于套餐，一般 10-100 并发请求"
+  proxy_network: "无请求数限制，按流量计费"
+  note: "频繁请求同一目标可能被封 IP，建议加随机延迟"
+
+docs_url: https://docs.brightdata.com/
+notes: |
+  - 主要用于竞品监控、价格跟踪、广告素材采集
+  - Proxy Network 提供住宅/移动 IP（绕过反爬虫）
+  - Web Scraper API 已封装常见网站（Amazon/Google/Facebook）
+  - 合规性：需遵守目标网站 ToS，避免采集个人隐私数据
+  - 常见场景：
+    - 电商：监控竞品价格和库存
+    - 广告：采集竞品广告素材和投放关键词
+    - SEO：采集 Google 搜索结果和广告排名
